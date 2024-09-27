@@ -3,7 +3,10 @@
   "version": "0.1.0",
   "description": "",
   "main": "index.js",
-  "repository": "github:fskuteken/pg-chain",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fskuteken/pg-chain.git"
+  },
   "files": [
     "index.d.ts",
     "index.js"
