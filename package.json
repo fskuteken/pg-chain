@@ -19,6 +19,7 @@
   "author": "Fernando Kuteken",
   "license": "ISC",
   "devDependencies": {
+    "@types/pg": "^8.11.10",
     "ts-node": "^10.9.2",
     "typescript": "^5.6.2",
     "vitest": "^2.1.1"
