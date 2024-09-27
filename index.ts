@@ -32,7 +32,7 @@ class PgFragment {
       if (i < this._params.length) {
         const param = this._params[i]
 
-        if (param instanceof PgFragmentChain) {
+        if (param instanceof PgChain) {
           const [fragmentSql, fragmentParams] = param.toSql(index)
           sql += fragmentSql
           params.push(...fragmentParams)
@@ -53,7 +53,7 @@ class PgFragment {
   }
 }
 
-export class PgFragmentChain {
+export class PgChain {
   private readonly _fragments: PgFragment[]
 
   constructor (fragments: PgFragment[]) {
@@ -83,87 +83,87 @@ export class PgFragmentChain {
     return [sql, params]
   }
 
-  AND (template: TemplateStringsArray, ...params: any[]): PgFragmentChain
-  AND (chain: PgFragmentChain): PgFragmentChain
-  AND (templateOrChain: TemplateStringsArray | PgFragmentChain, ...params: any[]): PgFragmentChain {
+  AND (template: TemplateStringsArray, ...params: any[]): PgChain
+  AND (chain: PgChain): PgChain
+  AND (templateOrChain: TemplateStringsArray | PgChain, ...params: any[]): PgChain {
     return this.chainable('AND', templateOrChain, ...params)
   }
 
-  AS (template: TemplateStringsArray, ...params: any[]): PgFragmentChain
-  AS (chain: PgFragmentChain): PgFragmentChain
-  AS (templateOrChain: TemplateStringsArray | PgFragmentChain, ...params: any[]): PgFragmentChain {
+  AS (template: TemplateStringsArray, ...params: any[]): PgChain
+  AS (chain: PgChain): PgChain
+  AS (templateOrChain: TemplateStringsArray | PgChain, ...params: any[]): PgChain {
     return this.chainable('AS', templateOrChain, ...params)
   }
 
-  FROM (template: TemplateStringsArray, ...params: any[]): PgFragmentChain
-  FROM (chain: PgFragmentChain): PgFragmentChain
-  FROM (templateOrChain: TemplateStringsArray | PgFragmentChain, ...params: any[]): PgFragmentChain {
+  FROM (template: TemplateStringsArray, ...params: any[]): PgChain
+  FROM (chain: PgChain): PgChain
+  FROM (templateOrChain: TemplateStringsArray | PgChain, ...params: any[]): PgChain {
     return this.chainable('FROM', templateOrChain, ...params)
   }
 
-  OR (template: TemplateStringsArray, ...params: any[]): PgFragmentChain
-  OR (chain: PgFragmentChain): PgFragmentChain
-  OR (templateOrChain: TemplateStringsArray | PgFragmentChain, ...params: any[]): PgFragmentChain {
+  OR (template: TemplateStringsArray, ...params: any[]): PgChain
+  OR (chain: PgChain): PgChain
+  OR (templateOrChain: TemplateStringsArray | PgChain, ...params: any[]): PgChain {
     return this.chainable('OR', templateOrChain, ...params)
   }
 
-  RETURNING (template: TemplateStringsArray, ...params: any[]): PgFragmentChain
-  RETURNING (chain: PgFragmentChain): PgFragmentChain
-  RETURNING (templateOrChain: TemplateStringsArray | PgFragmentChain, ...params: any[]): PgFragmentChain {
+  RETURNING (template: TemplateStringsArray, ...params: any[]): PgChain
+  RETURNING (chain: PgChain): PgChain
+  RETURNING (templateOrChain: TemplateStringsArray | PgChain, ...params: any[]): PgChain {
     return this.chainable('RETURNING', templateOrChain, ...params)
   }
 
-  SELECT (template: TemplateStringsArray, ...params: any[]): PgFragmentChain
-  SELECT (chain: PgFragmentChain): PgFragmentChain
-  SELECT (templateOrChain: TemplateStringsArray | PgFragmentChain, ...params: any[]): PgFragmentChain {
+  SELECT (template: TemplateStringsArray, ...params: any[]): PgChain
+  SELECT (chain: PgChain): PgChain
+  SELECT (templateOrChain: TemplateStringsArray | PgChain, ...params: any[]): PgChain {
     return this.chainable('SELECT', templateOrChain, ...params)
   }
 
-  SET (template: TemplateStringsArray, ...params: any[]): PgFragmentChain
-  SET (chain: PgFragmentChain): PgFragmentChain
-  SET (templateOrChain: TemplateStringsArray | PgFragmentChain, ...params: any[]): PgFragmentChain {
+  SET (template: TemplateStringsArray, ...params: any[]): PgChain
+  SET (chain: PgChain): PgChain
+  SET (templateOrChain: TemplateStringsArray | PgChain, ...params: any[]): PgChain {
     return this.chainable('SET', templateOrChain, ...params)
   }
 
-  get UNION (): PgFragmentChain {
-    return new PgFragmentChain([
+  get UNION (): PgChain {
+    return new PgChain([
       ...this._fragments,
       new PgFragment(['', ''] as any, [], 'UNION')
     ])
   }
 
-  VALUES (...params: any[]): PgFragmentChain {
+  VALUES (...params: any[]): PgChain {
     if (params.length === 0) {
-      return new PgFragmentChain([
+      return new PgChain([
         ...this._fragments,
         new PgFragment([''] as any, [], 'VALUES (', ')')
       ])
     }
 
-    return new PgFragmentChain([
+    return new PgChain([
       ...this._fragments,
       new PgFragment(['', ...new Array(params.length - 1).fill(', '), ''] as any, params, 'VALUES (', ')')
     ])
   }
 
-  WHERE (template: TemplateStringsArray, ...params: any[]): PgFragmentChain
-  WHERE (chain: PgFragmentChain): PgFragmentChain
-  WHERE (templateOrChain: TemplateStringsArray | PgFragmentChain, ...params: any[]): PgFragmentChain {
+  WHERE (template: TemplateStringsArray, ...params: any[]): PgChain
+  WHERE (chain: PgChain): PgChain
+  WHERE (templateOrChain: TemplateStringsArray | PgChain, ...params: any[]): PgChain {
     return this.chainable('WHERE', templateOrChain, ...params)
   }
 
   private chainable (
     keyword: string,
-    templateOrChain: TemplateStringsArray | PgFragmentChain,
+    templateOrChain: TemplateStringsArray | PgChain,
     ...params: any[]
-  ): PgFragmentChain {
-    if (templateOrChain instanceof PgFragmentChain) {
-      return new PgFragmentChain([
+  ): PgChain {
+    if (templateOrChain instanceof PgChain) {
+      return new PgChain([
         ...this._fragments,
         new PgFragment(['', ''] as any, [templateOrChain], `${keyword} (`, ')')
       ])
     } else {
-      return new PgFragmentChain([
+      return new PgChain([
         ...this._fragments,
         new PgFragment(templateOrChain, params, `${keyword} `)
       ])
@@ -171,44 +171,44 @@ export class PgFragmentChain {
   }
 }
 
-export function DELETE_FROM (template: TemplateStringsArray, ...params: any[]): PgFragmentChain {
-  return new PgFragmentChain([
+export function DELETE_FROM (template: TemplateStringsArray, ...params: any[]): PgChain {
+  return new PgChain([
     new PgFragment(template, params, 'DELETE FROM ')
   ])
 }
 
-export function EXISTS (...params: any[]): PgFragmentChain {
+export function EXISTS (...params: any[]): PgChain {
   if (params.length === 0) {
-    return new PgFragmentChain([
+    return new PgChain([
       new PgFragment([''] as any, [], 'EXISTS (', ')')
     ])
   }
 
-  return new PgFragmentChain([
+  return new PgChain([
     new PgFragment(['', ...new Array(params.length - 1).fill(', '), ''] as any, params, 'EXISTS (', ')')
   ])
 }
 
-export function INSERT_INTO (template: TemplateStringsArray, ...params: any[]): PgFragmentChain {
-  return new PgFragmentChain([
+export function INSERT_INTO (template: TemplateStringsArray, ...params: any[]): PgChain {
+  return new PgChain([
     new PgFragment(template, params, 'INSERT INTO ')
   ])
 }
 
-export function SELECT (template: TemplateStringsArray, ...params: any[]): PgFragmentChain {
-  return new PgFragmentChain([
+export function SELECT (template: TemplateStringsArray, ...params: any[]): PgChain {
+  return new PgChain([
     new PgFragment(template, params, 'SELECT ')
   ])
 }
 
-export function UPDATE (template: TemplateStringsArray, ...params: any[]): PgFragmentChain {
-  return new PgFragmentChain([
+export function UPDATE (template: TemplateStringsArray, ...params: any[]): PgChain {
+  return new PgChain([
     new PgFragment(template, params, 'UPDATE ')
   ])
 }
 
-export function WITH_RECURSIVE (template: TemplateStringsArray, ...params: any[]): PgFragmentChain {
-  return new PgFragmentChain([
+export function WITH_RECURSIVE (template: TemplateStringsArray, ...params: any[]): PgChain {
+  return new PgChain([
     new PgFragment(template, params, 'WITH_RECURSIVE ')
   ])
 }
