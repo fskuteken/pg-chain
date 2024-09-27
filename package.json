@@ -1,0 +1,23 @@
+{
+  "name": "pg-chain",
+  "version": "0.1.0",
+  "description": "",
+  "main": "index.js",
+  "repository": "github:fskuteken/pg-chain",
+  "files": [
+    "index.d.ts",
+    "index.js"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest"
+  },
+  "keywords": [],
+  "author": "Fernando Kuteken",
+  "license": "ISC",
+  "devDependencies": {
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.2",
+    "vitest": "^2.1.1"
+  }
+}
