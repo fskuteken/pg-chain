@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { DELETE_FROM, EXISTS, INSERT_INTO, SELECT, UPDATE, WITH_RECURSIVE } from './index'
+import { DELETE_FROM, EXISTS, INSERT_INTO, SELECT, UPDATE, WHERE, WITH_RECURSIVE } from './index'
 
 describe('chain', () => {
   test('DELETE FROM users WHERE id = $1', () => {
@@ -57,6 +57,21 @@ describe('chain', () => {
       .replace(/\s\s+/g, ' ')
     )
     expect(params).toEqual([])
+  })
+
+  test('SELECT COUNT(*)', () => {
+    const authorId = 12
+    const status = 'published'
+
+    const conditionals = WHERE`author_id = ${authorId}`.AND`status = ${status}`
+
+    const rows = SELECT`id, title`.FROM`post`.chain`${conditionals}`
+    const count = SELECT`COUNT(*)`.FROM`post`.chain`${conditionals}`
+
+    expect(rows.text).toBe('SELECT id, title FROM post WHERE author_id = $1 AND status = $2')
+    expect(rows.values).toMatchObject([authorId, status])
+    expect(count.text).toBe('SELECT COUNT(*) FROM post WHERE author_id = $1 AND status = $2')
+    expect(count.values).toMatchObject([authorId, status])
   })
 
   test('UPDATE users SET name = $1 WHERE id = $2', () => {
