@@ -165,7 +165,7 @@ import { WITH_RECURSIVE, SELECT } from 'pg-chain'
 const chain =
   WITH_RECURSIVE`tree`.AS (
     SELECT`n.*`.FROM`node n`.WHERE`id = ${10}`.
-    UNION.
+    UNION``.
     SELECT`n.*`.FROM`node n, tree t`.WHERE`n.parent_id = t.id`
   ).
   SELECT`*`.FROM`tree`
