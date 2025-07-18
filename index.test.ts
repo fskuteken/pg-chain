@@ -71,7 +71,7 @@ describe('chain', () => {
   test('WITH RECURSIVE tree AS (SELECT n.* FROM node n WHERE id = $...', () => {
     const chain = WITH_RECURSIVE`tree`.AS (
       SELECT`n.*`.FROM`node n`.WHERE`id = ${1}`.
-      UNION.
+      UNION``.
       SELECT`n.*`.FROM`node n, tree t`.WHERE`n.parent_id = t.id`
     ).
     SELECT`*`.FROM`tree`
@@ -79,10 +79,9 @@ describe('chain', () => {
     const [sql, params] = chain.toSql()
 
     expect(sql).toBe(
-      `WITH_RECURSIVE tree AS (
+      `WITH RECURSIVE tree AS (
         SELECT n.* FROM node n WHERE id = $1
-        UNION
-        SELECT n.* FROM node n, tree t WHERE n.parent_id = t.id
+        UNION SELECT n.* FROM node n, tree t WHERE n.parent_id = t.id
       )
       SELECT * FROM tree`
       .replace(/\s\s+/g, ' ').replace('( ', '(').replace(' )', ')')

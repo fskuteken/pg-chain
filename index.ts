@@ -1,214 +1,236 @@
-class PgFragment {
-  private readonly _template: TemplateStringsArray
-  private readonly _params: any[]
-  private readonly _prefix?: string
-  private readonly _suffix?: string
+export class PgChain {
+  private strings: TemplateStringsArray
+  private args: any[]
+  private prev: PgChain | null
+  private next: PgChain | null
 
-  constructor (
-    template: TemplateStringsArray,
-    params: any[],
-    prefix?: string,
-    suffix?: string
-  ) {
-    this._template = template
-    this._params = params
-    this._prefix = prefix
-    this._suffix = suffix
+  constructor (strings: TemplateStringsArray, args: any[]) {
+    this.strings = strings
+    this.args = args
+    this.prev = null
+    this.next = null
   }
 
-  toString (): string {
+  static from (strings: TemplateStringsArray, ...args: any[]): PgChain {
+    return new PgChain(strings, args)
+  }
+
+  get text (): string {
     const [sql] = this.toSql()
 
     return sql
   }
 
-  toSql (index: number = 0): [sql: string, params: any[]] {
-    let sql = ''
-    const params: any[] = []
+  get values (): any[] {
+    const [, args] = this.toSql()
 
-    for (let i = 0; i < this._template.length; i++) {
-      sql += this._template[i]
+    return args
+  }
 
-      if (i < this._params.length) {
-        const param = this._params[i]
+  chain (chain: PgChain, ...args: any[]): PgChain
+  chain (strings: TemplateStringsArray, ...args: any[]): PgChain
+  chain (stringsOrChain: TemplateStringsArray | PgChain, ...args: any[]): PgChain
+  chain (stringsOrChain: TemplateStringsArray | PgChain, ...args: any[]): PgChain {
+    if (stringsOrChain instanceof PgChain) {
+      return this.chain`(${stringsOrChain})`
+    } else {
+      const next = new PgChain(stringsOrChain, args)
+      this.next = next
+      next.prev = this
+      return next
+    }
+  }
 
-        if (param instanceof PgChain) {
-          const [fragmentSql, fragmentParams] = param.toSql(index)
-          sql += fragmentSql
-          params.push(...fragmentParams)
-          index += fragmentParams.length
-        } else {
-          sql += `$${++index}`
+  head (): PgChain {
+    let head: PgChain = this
 
-          params.push(this._params[i])
+    while (head.prev) {
+      head = head.prev
+    }
+
+    return head
+  }
+
+  toSql (index: number = 0): [sql: string, args: any[]] {
+    const head = this.head()
+    let current: PgChain | null = head
+
+    const sqlAcc: string[] = []
+    const acc: any[] = []
+
+    while (current) {
+      const { strings, args } = current
+
+      let sql = ''
+
+      for (let i = 0; i < strings.length; i++) {
+        sql += strings[i]
+
+        if (i < args.length) {
+          const arg = args[i]
+
+          if (arg instanceof PgChain) {
+            const [argSql, argArgs] = arg.toSql(index)
+            sql += argSql
+            acc.push(...argArgs)
+            index += argArgs.length
+          } else {
+            sql += `$${index + 1}`
+            index++
+            acc.push(arg)
+          }
         }
       }
+
+      if (sql) {
+        sqlAcc.push(sql)
+      }
+
+      current = current.next
     }
 
-    const prefix = this._prefix ?? ''
-    const suffix = this._suffix ?? ''
-    const wrappedSql = `${prefix}${sql}${suffix}`
-
-    return [wrappedSql, params]
-  }
-}
-
-export class PgChain {
-  private readonly _fragments: PgFragment[]
-
-  constructor (fragments: PgFragment[]) {
-    this._fragments = fragments
+    return [sqlAcc.join(' '), acc]
   }
 
-  toString (): string {
-    const [sql] = this.toSql()
-
-    return sql
+  if (condition: boolean, callback: (chain: PgChain) => PgChain): PgChain {
+    return condition ? callback(this) : this
   }
 
-  toSql (index = 0): [sql: string, params: any[]] {
-    const parts: string[] = []
-    const params: any[] = []
-
-    for (const fragment of this._fragments) {
-      const [fragmentSql, fragmentParams] = fragment.toSql(index)
-
-      index += fragmentParams.length
-      parts.push(fragmentSql)
-      params.push(...fragmentParams)
-    }
-
-    const sql = parts.join(' ')
-
-    return [sql, params]
+  FROM (strings: TemplateStringsArray, ...args: any[]): PgChain {
+    return this.chain`FROM`.chain(strings, ...args)
   }
 
-  AND (template: TemplateStringsArray, ...params: any[]): PgChain
-  AND (chain: PgChain): PgChain
-  AND (templateOrChain: TemplateStringsArray | PgChain, ...params: any[]): PgChain {
-    return this.chainable('AND', templateOrChain, ...params)
+  JOIN (strings: TemplateStringsArray, ...args: any[]): PgChain {
+    return this.chain`JOIN`.chain(strings, ...args)
   }
 
-  AS (template: TemplateStringsArray, ...params: any[]): PgChain
-  AS (chain: PgChain): PgChain
-  AS (templateOrChain: TemplateStringsArray | PgChain, ...params: any[]): PgChain {
-    return this.chainable('AS', templateOrChain, ...params)
+  LEFT_JOIN (strings: TemplateStringsArray, ...args: any[]): PgChain {
+    return this.chain`LEFT JOIN`.chain(strings, ...args)
   }
 
-  FROM (template: TemplateStringsArray, ...params: any[]): PgChain
-  FROM (chain: PgChain): PgChain
-  FROM (templateOrChain: TemplateStringsArray | PgChain, ...params: any[]): PgChain {
-    return this.chainable('FROM', templateOrChain, ...params)
+  ON (strings: TemplateStringsArray, ...args: any[]): PgChain {
+    return this.chain`ON`.chain(strings, ...args)
   }
 
-  OR (template: TemplateStringsArray, ...params: any[]): PgChain
-  OR (chain: PgChain): PgChain
-  OR (templateOrChain: TemplateStringsArray | PgChain, ...params: any[]): PgChain {
-    return this.chainable('OR', templateOrChain, ...params)
+  WHERE (strings: TemplateStringsArray, ...args: any[]): PgChain {
+    return this.chain`WHERE`.chain(strings, ...args)
   }
 
-  RETURNING (template: TemplateStringsArray, ...params: any[]): PgChain
-  RETURNING (chain: PgChain): PgChain
-  RETURNING (templateOrChain: TemplateStringsArray | PgChain, ...params: any[]): PgChain {
-    return this.chainable('RETURNING', templateOrChain, ...params)
+  GROUP_BY (strings: TemplateStringsArray, ...args: any[]): PgChain {
+    return this.chain`GROUP BY`.chain(strings, ...args)
   }
 
-  SELECT (template: TemplateStringsArray, ...params: any[]): PgChain
-  SELECT (chain: PgChain): PgChain
-  SELECT (templateOrChain: TemplateStringsArray | PgChain, ...params: any[]): PgChain {
-    return this.chainable('SELECT', templateOrChain, ...params)
+  AND (strings: TemplateStringsArray, ...args: any[]): PgChain {
+    return this.chain`AND`.chain(strings, ...args)
   }
 
-  SET (template: TemplateStringsArray, ...params: any[]): PgChain
-  SET (chain: PgChain): PgChain
-  SET (templateOrChain: TemplateStringsArray | PgChain, ...params: any[]): PgChain {
-    return this.chainable('SET', templateOrChain, ...params)
+  OR (strings: TemplateStringsArray, ...args: any[]): PgChain {
+    return this.chain`OR`.chain(strings, ...args)
   }
 
-  get UNION (): PgChain {
-    return new PgChain([
-      ...this._fragments,
-      new PgFragment(['', ''] as any, [], 'UNION')
-    ])
+  LIMIT (strings: TemplateStringsArray, ...args: any[]): PgChain {
+    return this.chain`LIMIT`.chain(strings, ...args)
   }
 
-  VALUES (...params: any[]): PgChain {
-    if (params.length === 0) {
-      return new PgChain([
-        ...this._fragments,
-        new PgFragment([''] as any, [], 'VALUES (', ')')
-      ])
-    }
-
-    return new PgChain([
-      ...this._fragments,
-      new PgFragment(['', ...new Array(params.length - 1).fill(', '), ''] as any, params, 'VALUES (', ')')
-    ])
+  OFFSET (strings: TemplateStringsArray, ...args: any[]): PgChain {
+    return this.chain`OFFSET`.chain(strings, ...args)
   }
 
-  WHERE (template: TemplateStringsArray, ...params: any[]): PgChain
-  WHERE (chain: PgChain): PgChain
-  WHERE (templateOrChain: TemplateStringsArray | PgChain, ...params: any[]): PgChain {
-    return this.chainable('WHERE', templateOrChain, ...params)
-  }
-
-  private chainable (
-    keyword: string,
-    templateOrChain: TemplateStringsArray | PgChain,
-    ...params: any[]
-  ): PgChain {
-    if (templateOrChain instanceof PgChain) {
-      return new PgChain([
-        ...this._fragments,
-        new PgFragment(['', ''] as any, [templateOrChain], `${keyword} (`, ')')
-      ])
+  VALUES (...args: any[]): PgChain
+  VALUES (chain: PgChain, ...args: any[]): PgChain
+  VALUES (strings: TemplateStringsArray, ...args: any[]): PgChain
+  VALUES (stringsOrChainOrArgs: TemplateStringsArray | PgChain | any, ...args: any[]): PgChain {
+    if (stringsOrChainOrArgs instanceof PgChain) {
+      return this.chain`VALUES`.chain(stringsOrChainOrArgs, ...args)
+    } else if (
+      Array.isArray(stringsOrChainOrArgs) &&
+      'raw' in stringsOrChainOrArgs &&
+      Array.isArray(stringsOrChainOrArgs.raw)
+    ) {
+      return this.chain`VALUES`.chain(stringsOrChainOrArgs as TemplateStringsArray, ...args)
     } else {
-      return new PgChain([
-        ...this._fragments,
-        new PgFragment(templateOrChain, params, `${keyword} `)
-      ])
+      const allArgs = [stringsOrChainOrArgs, ...args]
+      const strings: any = ['', ...new Array(allArgs.length - 1).fill(', ')] as any[] as any
+      strings.raw = []
+
+      return this.chain`VALUES`.chain(new PgChain(strings, allArgs))
     }
   }
-}
 
-export function DELETE_FROM (template: TemplateStringsArray, ...params: any[]): PgChain {
-  return new PgChain([
-    new PgFragment(template, params, 'DELETE FROM ')
-  ])
-}
-
-export function EXISTS (...params: any[]): PgChain {
-  if (params.length === 0) {
-    return new PgChain([
-      new PgFragment([''] as any, [], 'EXISTS (', ')')
-    ])
+  ON_CONFLICT (strings: TemplateStringsArray, ...args: any[]): PgChain {
+    return this.chain`ON CONFLICT`.chain(strings, ...args)
   }
 
-  return new PgChain([
-    new PgFragment(['', ...new Array(params.length - 1).fill(', '), ''] as any, params, 'EXISTS (', ')')
-  ])
+  ORDER_BY (strings: TemplateStringsArray, ...args: any[]): PgChain {
+    return this.chain`ORDER BY`.chain(strings, ...args)
+  }
+
+  DO_NOTHING (strings: TemplateStringsArray, ...args: any[]): PgChain {
+    return this.chain`DO NOTHING`.chain(strings, ...args)
+  }
+
+  RETURNING (strings: TemplateStringsArray, ...args: any[]): PgChain {
+    return this.chain`RETURNING`.chain(strings, ...args)
+  }
+
+  SET (strings: TemplateStringsArray, ...args: any[]): PgChain {
+    return this.chain`SET`.chain(strings, ...args)
+  }
+
+  AS (chain: PgChain, ...args: any[]): PgChain
+  AS (strings: TemplateStringsArray, ...args: any[]): PgChain
+  AS (stringsOrChain: TemplateStringsArray | PgChain, ...args: any[]): PgChain {
+    return this.chain`AS`.chain(stringsOrChain, ...args)
+  }
+
+  UNION (strings: TemplateStringsArray, ...args: any[]): PgChain {
+    return this.chain`UNION`.chain(strings, ...args)
+  }
+
+  SELECT (strings: TemplateStringsArray, ...args: any[]): PgChain {
+    return this.chain`SELECT`.chain(strings, ...args)
+  }
 }
 
-export function INSERT_INTO (template: TemplateStringsArray, ...params: any[]): PgChain {
-  return new PgChain([
-    new PgFragment(template, params, 'INSERT INTO ')
-  ])
+export function BEGIN (): PgChain {
+  return PgChain.from`BEGIN`
+}
+BEGIN.text = 'BEGIN'
+
+export function COMMIT (): PgChain {
+  return PgChain.from`COMMIT`
+}
+COMMIT.text = 'COMMIT'
+
+export function ROLLBACK (): PgChain {
+  return PgChain.from`ROLLBACK`
+}
+ROLLBACK.text = 'ROLLBACK'
+
+export function DELETE_FROM (strings: TemplateStringsArray, ...args: any[]): PgChain {
+  return PgChain.from`DELETE FROM`.chain(strings, ...args)
 }
 
-export function SELECT (template: TemplateStringsArray, ...params: any[]): PgChain {
-  return new PgChain([
-    new PgFragment(template, params, 'SELECT ')
-  ])
+export function INSERT_INTO (strings: TemplateStringsArray, ...args: any[]): PgChain {
+  return PgChain.from`INSERT INTO`.chain(strings, ...args)
 }
 
-export function UPDATE (template: TemplateStringsArray, ...params: any[]): PgChain {
-  return new PgChain([
-    new PgFragment(template, params, 'UPDATE ')
-  ])
+export function SELECT (strings: TemplateStringsArray, ...args: any[]): PgChain {
+  return PgChain.from`SELECT`.chain(strings, ...args)
 }
 
-export function WITH_RECURSIVE (template: TemplateStringsArray, ...params: any[]): PgChain {
-  return new PgChain([
-    new PgFragment(template, params, 'WITH_RECURSIVE ')
-  ])
+export function UPDATE (strings: TemplateStringsArray, ...args: any[]): PgChain {
+  return PgChain.from`UPDATE`.chain(strings, ...args)
+}
+
+export function WITH_RECURSIVE (strings: TemplateStringsArray, ...args: any[]): PgChain {
+  return PgChain.from`WITH RECURSIVE`.chain(strings, ...args)
+}
+
+export function WHERE (strings: TemplateStringsArray, ...args: any[]): PgChain {
+  return PgChain.from`WHERE`.chain(strings, ...args)
+}
+
+export function EXISTS (stringsOrChain: TemplateStringsArray | PgChain, ...args: any[]): PgChain {
+  return PgChain.from`EXISTS`.chain(stringsOrChain, ...args)
 }
