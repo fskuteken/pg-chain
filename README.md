@@ -29,6 +29,12 @@ After all desired methods are called, we can use the `.toSql()` method to genera
 const [sql, params] = chain.toSql()
 ```
 
+Alternatively, the chain has the `text` and `values` properties, making it suitable to use with the pg package:
+
+```js
+const { rows } = await pg.query(SELECT`id, name`.FROM`user`)
+```
+
 # Examples
 
 * [SELECT](#select)
@@ -37,6 +43,7 @@ const [sql, params] = chain.toSql()
 * [DELETE](#delete)
 * [EXISTS](#exists)
 * [WITH RECURSIVE](#with-recursive)
+* [Pagination](#pagination)
 
 ## SELECT
 
@@ -165,7 +172,7 @@ import { WITH_RECURSIVE, SELECT } from 'pg-chain'
 const chain =
   WITH_RECURSIVE`tree`.AS (
     SELECT`n.*`.FROM`node n`.WHERE`id = ${10}`.
-    UNION.
+    UNION``.
     SELECT`n.*`.FROM`node n, tree t`.WHERE`n.parent_id = t.id`
   ).
   SELECT`*`.FROM`tree`
@@ -185,4 +192,27 @@ Generated params:
 
 ```js
 [10]
+```
+
+## Pagination
+
+It is possible to reuse the same `WHERE` conditionals in multiple queries, such as when paginating results.
+
+```js
+import { SELECT, WHERE } from 'pg-chain'
+
+const authorId = 12
+const status = 'published'
+
+const conditionals = WHERE`author_id = ${authorId}`.AND`status = ${status}`
+
+const rows = SELECT`id, title`.FROM`post`.chain`${conditionals}`
+const count = SELECT`COUNT(*)`.FROM`post`.chain`${conditionals}`
+```
+
+Generated SQL.
+
+```sql
+SELECT id, title FROM post WHERE author_id = $1 AND status = $2
+SELECT COUNT(*) FROM post WHERE author_id = $1 AND status = $2
 ```

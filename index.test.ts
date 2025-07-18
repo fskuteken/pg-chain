@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { DELETE_FROM, EXISTS, INSERT_INTO, SELECT, UPDATE, WITH_RECURSIVE } from './index'
+import { DELETE_FROM, EXISTS, INSERT_INTO, SELECT, UPDATE, WHERE, WITH_RECURSIVE } from './index'
 
 describe('chain', () => {
   test('DELETE FROM users WHERE id = $1', () => {
@@ -59,6 +59,21 @@ describe('chain', () => {
     expect(params).toEqual([])
   })
 
+  test('SELECT COUNT(*)', () => {
+    const authorId = 12
+    const status = 'published'
+
+    const conditionals = WHERE`author_id = ${authorId}`.AND`status = ${status}`
+
+    const rows = SELECT`id, title`.FROM`post`.chain`${conditionals}`
+    const count = SELECT`COUNT(*)`.FROM`post`.chain`${conditionals}`
+
+    expect(rows.text).toBe('SELECT id, title FROM post WHERE author_id = $1 AND status = $2')
+    expect(rows.values).toMatchObject([authorId, status])
+    expect(count.text).toBe('SELECT COUNT(*) FROM post WHERE author_id = $1 AND status = $2')
+    expect(count.values).toMatchObject([authorId, status])
+  })
+
   test('UPDATE users SET name = $1 WHERE id = $2', () => {
     const chain = UPDATE`users`.SET`name = ${'Alice'}`.WHERE`id = ${1}`
 
@@ -71,7 +86,7 @@ describe('chain', () => {
   test('WITH RECURSIVE tree AS (SELECT n.* FROM node n WHERE id = $...', () => {
     const chain = WITH_RECURSIVE`tree`.AS (
       SELECT`n.*`.FROM`node n`.WHERE`id = ${1}`.
-      UNION.
+      UNION``.
       SELECT`n.*`.FROM`node n, tree t`.WHERE`n.parent_id = t.id`
     ).
     SELECT`*`.FROM`tree`
@@ -79,10 +94,9 @@ describe('chain', () => {
     const [sql, params] = chain.toSql()
 
     expect(sql).toBe(
-      `WITH_RECURSIVE tree AS (
+      `WITH RECURSIVE tree AS (
         SELECT n.* FROM node n WHERE id = $1
-        UNION
-        SELECT n.* FROM node n, tree t WHERE n.parent_id = t.id
+        UNION SELECT n.* FROM node n, tree t WHERE n.parent_id = t.id
       )
       SELECT * FROM tree`
       .replace(/\s\s+/g, ' ').replace('( ', '(').replace(' )', ')')
