@@ -192,45 +192,49 @@ export class PgChain {
   }
 }
 
+export function chain (strings: TemplateStringsArray, ...args: any[]): PgChain {
+  return new PgChain(strings, args)
+}
+
 export function BEGIN (): PgChain {
-  return PgChain.from`BEGIN`
+  return chain`BEGIN`
 }
 BEGIN.text = 'BEGIN'
 
 export function COMMIT (): PgChain {
-  return PgChain.from`COMMIT`
+  return chain`COMMIT`
 }
 COMMIT.text = 'COMMIT'
 
 export function ROLLBACK (): PgChain {
-  return PgChain.from`ROLLBACK`
+  return chain`ROLLBACK`
 }
 ROLLBACK.text = 'ROLLBACK'
 
 export function DELETE_FROM (strings: TemplateStringsArray, ...args: any[]): PgChain {
-  return PgChain.from`DELETE FROM`.chain(strings, ...args)
+  return chain`DELETE FROM`.chain(strings, ...args)
 }
 
 export function INSERT_INTO (strings: TemplateStringsArray, ...args: any[]): PgChain {
-  return PgChain.from`INSERT INTO`.chain(strings, ...args)
+  return chain`INSERT INTO`.chain(strings, ...args)
 }
 
 export function SELECT (strings: TemplateStringsArray, ...args: any[]): PgChain {
-  return PgChain.from`SELECT`.chain(strings, ...args)
+  return chain`SELECT`.chain(strings, ...args)
 }
 
 export function UPDATE (strings: TemplateStringsArray, ...args: any[]): PgChain {
-  return PgChain.from`UPDATE`.chain(strings, ...args)
+  return chain`UPDATE`.chain(strings, ...args)
 }
 
 export function WITH_RECURSIVE (strings: TemplateStringsArray, ...args: any[]): PgChain {
-  return PgChain.from`WITH RECURSIVE`.chain(strings, ...args)
+  return chain`WITH RECURSIVE`.chain(strings, ...args)
 }
 
 export function WHERE (strings: TemplateStringsArray, ...args: any[]): PgChain {
-  return PgChain.from`WHERE`.chain(strings, ...args)
+  return chain`WHERE`.chain(strings, ...args)
 }
 
 export function EXISTS (stringsOrChain: TemplateStringsArray | PgChain, ...args: any[]): PgChain {
-  return PgChain.from`EXISTS`.chain(stringsOrChain, ...args)
+  return chain`EXISTS`.chain(stringsOrChain, ...args)
 }
