@@ -192,21 +192,6 @@ export function chain (strings: TemplateStringsArray, ...args: any[]): PgChain {
   return new PgChain(strings, args)
 }
 
-export function insert (table: string, values: Record<string, any>): PgChain {
-  const keys = Object.keys(values)
-
-  const strings: any = [
-    `INSERT INTO ${table} (${keys.join(', ')}) VALUES (`,
-    ...Array.from({ length: keys.length - 1 }).map(() => ', '),
-    ')'
-  ]
-  strings.raw = []
-
-  const args: any[] = Object.values(values)
-
-  return new PgChain(strings, args)
-}
-
 export function BEGIN (): PgChain {
   return chain`BEGIN`
 }
@@ -226,9 +211,36 @@ export function DELETE_FROM (strings: TemplateStringsArray, ...args: any[]): PgC
   return chain`DELETE FROM`.chain(strings, ...args)
 }
 
-export function INSERT_INTO (strings: TemplateStringsArray, ...args: any[]): PgChain {
-  return chain`INSERT INTO`.chain(strings, ...args)
+export function INSERT_INTO (strings: TemplateStringsArray, ...args: any[]): PgChain
+export function INSERT_INTO (table: string, ...rows: Record<string, any>[]): PgChain
+export function INSERT_INTO (stringsOrTable: string | TemplateStringsArray, ...argsOrRows: any[]): PgChain {
+  if (typeof stringsOrTable === 'string') {
+    const keys = Object.keys(argsOrRows[0])
+    const colsLength = keys.length
+    const rowsLength = argsOrRows.length
+
+    const strings: any = [
+      `INSERT INTO ${stringsOrTable} (${keys.join(', ')}) VALUES (`,
+      ...Array.from({ length: colsLength - 1 }).map(() => ', '),
+      ...Array.from({ length: rowsLength - 1 }).map(() =>
+        Array.from({ length: colsLength }).map((_, index) => index === 0 ? '), (' : ', ')
+      ).reduce((acc, curr) => acc.concat(curr), []),
+      ')'
+    ]
+    strings.raw = []
+
+    console.log(strings)
+
+    const args: any[] = argsOrRows.reduce((acc, row) => acc.concat(Object.values(row)), [])
+
+    return new PgChain(strings, args)
+  } else {
+    return chain`INSERT INTO`.chain(stringsOrTable, ...argsOrRows)
+  }
 }
+
+INSERT_INTO`users (name, status)`.VALUES`(${1}, ${2})`
+INSERT_INTO('users', { name: 'Alice', status: 'active' })
 
 export function SELECT (strings: TemplateStringsArray, ...args: any[]): PgChain {
   return chain`SELECT`.chain(strings, ...args)
