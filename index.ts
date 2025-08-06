@@ -11,10 +11,6 @@ export class PgChain {
     this.next = null
   }
 
-  static from (strings: TemplateStringsArray, ...args: any[]): PgChain {
-    return new PgChain(strings, args)
-  }
-
   get text (): string {
     const [sql] = this.toSql()
 
