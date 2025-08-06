@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { DELETE_FROM, EXISTS, INSERT_INTO, SELECT, UPDATE, WHERE, WITH_RECURSIVE } from './index'
+import { DELETE_FROM, EXISTS, insert, INSERT_INTO, SELECT, UPDATE, WHERE, WITH_RECURSIVE } from './index'
 
 describe('chain', () => {
   test('DELETE FROM users WHERE id = $1', () => {
@@ -102,5 +102,21 @@ describe('chain', () => {
       .replace(/\s\s+/g, ' ').replace('( ', '(').replace(' )', ')')
     )
     expect(params).toEqual([1])
+  })
+
+  describe('insert', () => {
+    test('INSERT INTO "user" (name, email) VALUES ($1, $2)', () => {
+      const chain = insert('"user"', { name: 'Alice', email: 'alice@example.com' })
+
+      expect(chain.text).toBe('INSERT INTO "user" (name, email) VALUES ($1, $2)')
+      expect(chain.values).toEqual(['Alice', 'alice@example.com'])
+    })
+
+    test('INSERT INTO "user" (name, email, age) VALUES ($1, $2, $3)', () => {
+      const chain = insert('"user"', { name: 'Alice', email: 'alice@example.com', age: 30 })
+
+      expect(chain.text).toBe('INSERT INTO "user" (name, email, age) VALUES ($1, $2, $3)')
+      expect(chain.values).toEqual(['Alice', 'alice@example.com', 30])
+    })
   })
 })

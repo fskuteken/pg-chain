@@ -196,6 +196,21 @@ export function chain (strings: TemplateStringsArray, ...args: any[]): PgChain {
   return new PgChain(strings, args)
 }
 
+export function insert (table: string, values: Record<string, any>): PgChain {
+  const keys = Object.keys(values)
+
+  const strings: any = [
+    `INSERT INTO ${table} (${keys.join(', ')}) VALUES (`,
+    ...Array.from({ length: keys.length - 1 }).map(() => ', '),
+    ')'
+  ]
+  strings.raw = []
+
+  const args: any[] = Object.values(values)
+
+  return new PgChain(strings, args)
+}
+
 export function BEGIN (): PgChain {
   return chain`BEGIN`
 }
