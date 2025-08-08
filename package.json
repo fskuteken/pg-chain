@@ -12,6 +12,7 @@
     "index.js"
   ],
   "scripts": {
+    "prepublishOnly": "npm run build",
     "build": "tsc",
     "test": "vitest"
   },
