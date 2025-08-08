@@ -229,8 +229,6 @@ export function INSERT_INTO (stringsOrTable: string | TemplateStringsArray, ...a
     ]
     strings.raw = []
 
-    console.log(strings)
-
     const args: any[] = argsOrRows.reduce((acc, row) => acc.concat(Object.values(row)), [])
 
     return new PgChain(strings, args)
