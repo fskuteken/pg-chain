@@ -212,7 +212,7 @@ export function DELETE_FROM (strings: TemplateStringsArray, ...args: any[]): PgC
 }
 
 export function INSERT_INTO (strings: TemplateStringsArray, ...args: any[]): PgChain
-export function INSERT_INTO (table: string, ...rows: Record<string, any>[]): PgChain
+export function INSERT_INTO <T extends Record<string, unknown>>(table: string, ...rows: T[]): PgChain
 export function INSERT_INTO (stringsOrTable: string | TemplateStringsArray, ...argsOrRows: any[]): PgChain {
   if (typeof stringsOrTable === 'string') {
     const keys = Object.keys(argsOrRows[0])
@@ -237,8 +237,13 @@ export function INSERT_INTO (stringsOrTable: string | TemplateStringsArray, ...a
   }
 }
 
+type User = {
+  id: number
+  name: string
+}
+
 INSERT_INTO`users (name, status)`.VALUES`(${1}, ${2})`
-INSERT_INTO('users', { name: 'Alice', status: 'active' })
+INSERT_INTO<User>('users', { name: 'Alice', id: 3 }, { id: 2, name: 'Bob' })
 
 export function SELECT (strings: TemplateStringsArray, ...args: any[]): PgChain {
   return chain`SELECT`.chain(strings, ...args)
