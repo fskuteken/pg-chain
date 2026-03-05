@@ -130,4 +130,19 @@ describe('chain', () => {
       expect(chain.values).toEqual(['Alice', 'alice@example.com', 'Bob', 'bob@example.com'])
     })
   })
+
+  describe('exists', () => {
+    test('SELECT * FROM author WHERE EXISTS (SELECT 1 FROM post WHERE post.author_id = author.id)', () => {
+      const chain = SELECT`*`
+        .FROM`author`
+        .WHERE(EXISTS(SELECT`1`.FROM`post`.WHERE`post.author_id = author.id`))
+
+      const [sql, params] = chain.toSql()
+
+      expect(sql).toBe(
+        'SELECT * FROM author WHERE (EXISTS (SELECT 1 FROM post WHERE post.author_id = author.id))'
+      )
+      expect(params).toEqual([])
+    })
+  })
 })
