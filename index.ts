@@ -212,7 +212,7 @@ export function DELETE_FROM (strings: TemplateStringsArray, ...args: any[]): PgC
 }
 
 export function INSERT_INTO (strings: TemplateStringsArray, ...args: any[]): PgChain
-export function INSERT_INTO <T extends Record<string, unknown>>(table: string, ...rows: T[]): PgChain
+export function INSERT_INTO <T extends Record<string, unknown> = Record<string, unknown>>(table: string, ...rows: T[]): PgChain
 export function INSERT_INTO (stringsOrTable: string | TemplateStringsArray, ...argsOrRows: any[]): PgChain {
   if (typeof stringsOrTable === 'string') {
     const keys = Object.keys(argsOrRows[0])
