@@ -131,6 +131,22 @@ describe('chain', () => {
     })
   })
 
+  describe('update', () => {
+    test('UPDATE users SET name = $1 WHERE id = $2 (object, single key)', () => {
+      const chain = UPDATE`users`.SET({ name: 'Alice' }).WHERE`id = ${1}`
+
+      expect(chain.text).toBe('UPDATE users SET name = $1 WHERE id = $2')
+      expect(chain.values).toEqual(['Alice', 1])
+    })
+
+    test('UPDATE users SET name = $1, age = $2 WHERE id = $3 (object, multiple keys)', () => {
+      const chain = UPDATE`users`.SET({ name: 'Alice', age: 30 }).WHERE`id = ${1}`
+
+      expect(chain.text).toBe('UPDATE users SET name = $1, age = $2 WHERE id = $3')
+      expect(chain.values).toEqual(['Alice', 30, 1])
+    })
+  })
+  
   describe('exists', () => {
     test('SELECT * FROM author WHERE EXISTS (SELECT 1 FROM post WHERE post.author_id = author.id)', () => {
       const chain = SELECT`*`

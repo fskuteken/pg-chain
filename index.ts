@@ -172,8 +172,18 @@ export class PgChain {
     return this.chain`RETURNING`.chain(strings, ...args)
   }
 
-  SET (strings: TemplateStringsArray, ...args: any[]): PgChain {
-    return this.chain`SET`.chain(strings, ...args)
+  SET<T extends Record<string, any>>(object: T): PgChain
+  SET(strings: TemplateStringsArray, ...args: any[]): PgChain
+  SET(stringsOrObject: TemplateStringsArray | Record<string, any>, ...args: any[]): PgChain {
+    if (Array.isArray(stringsOrObject)) {
+      return this.chain`SET`.chain(stringsOrObject as unknown as TemplateStringsArray, ...args)
+    }
+    const [firstKey, ...restKeys] = Object.keys(stringsOrObject)
+    const values = Object.values(stringsOrObject)
+
+    const strings: any = [`${firstKey} = `, ...restKeys.map((key) => `, ${key} = `)]
+    strings.raw = []
+    return this.SET(strings, ...values)
   }
 
   AS (chain: PgChain, ...args: any[]): PgChain
@@ -215,7 +225,7 @@ export function DELETE_FROM (strings: TemplateStringsArray, ...args: any[]): PgC
 }
 
 export function INSERT_INTO (strings: TemplateStringsArray, ...args: any[]): PgChain
-export function INSERT_INTO (table: string, ...rows: Record<string, any>[]): PgChain
+export function INSERT_INTO <T extends Record<string, unknown> = Record<string, unknown>>(table: string, ...rows: T[]): PgChain
 export function INSERT_INTO (stringsOrTable: string | TemplateStringsArray, ...argsOrRows: any[]): PgChain {
   if (typeof stringsOrTable === 'string') {
     const keys = Object.keys(argsOrRows[0])
@@ -240,8 +250,13 @@ export function INSERT_INTO (stringsOrTable: string | TemplateStringsArray, ...a
   }
 }
 
+type User = {
+  id: number
+  name: string
+}
+
 INSERT_INTO`users (name, status)`.VALUES`(${1}, ${2})`
-INSERT_INTO('users', { name: 'Alice', status: 'active' })
+INSERT_INTO<User>('users', { name: 'Alice', id: 3 }, { id: 2, name: 'Bob' })
 
 export function SELECT (strings: TemplateStringsArray, ...args: any[]): PgChain {
   return chain`SELECT`.chain(strings, ...args)
