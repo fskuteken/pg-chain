@@ -108,8 +108,11 @@ export class PgChain {
     return this.chain`ON`.chain(strings, ...args)
   }
 
-  WHERE (strings: TemplateStringsArray, ...args: any[]): PgChain {
-    return this.chain`WHERE`.chain(strings, ...args)
+  WHERE (chain: PgChain): PgChain
+  WHERE (strings: TemplateStringsArray, ...args: any[]): PgChain
+  WHERE (stringsOrChain: TemplateStringsArray | PgChain, ...args: any[]): PgChain
+  WHERE (stringsOrChain: TemplateStringsArray | PgChain, ...args: any[]): PgChain {
+    return this.chain`WHERE`.chain(stringsOrChain, ...args)
   }
 
   GROUP_BY (strings: TemplateStringsArray, ...args: any[]): PgChain {
@@ -271,6 +274,8 @@ export function WHERE (strings: TemplateStringsArray, ...args: any[]): PgChain {
   return chain`WHERE`.chain(strings, ...args)
 }
 
+export function EXISTS (chain: PgChain): PgChain
+export function EXISTS (strings: TemplateStringsArray, ...args: any[]): PgChain
 export function EXISTS (stringsOrChain: TemplateStringsArray | PgChain, ...args: any[]): PgChain {
   return chain`EXISTS`.chain(stringsOrChain, ...args)
 }
