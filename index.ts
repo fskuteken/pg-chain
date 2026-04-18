@@ -169,8 +169,18 @@ export class PgChain {
     return this.chain`RETURNING`.chain(strings, ...args)
   }
 
-  SET (strings: TemplateStringsArray, ...args: any[]): PgChain {
-    return this.chain`SET`.chain(strings, ...args)
+  SET<T extends Record<string, any>>(object: T): PgChain
+  SET(strings: TemplateStringsArray, ...args: any[]): PgChain
+  SET(stringsOrObject: TemplateStringsArray | Record<string, any>, ...args: any[]): PgChain {
+    if (Array.isArray(stringsOrObject)) {
+      return this.chain`SET`.chain(stringsOrObject as unknown as TemplateStringsArray, ...args)
+    }
+    const [firstKey, ...restKeys] = Object.keys(stringsOrObject)
+    const values = Object.values(stringsOrObject)
+
+    const strings: any = [`${firstKey} = `, ...restKeys.map((key) => `, ${key} = `)]
+    strings.raw = []
+    return this.SET(strings, ...values)
   }
 
   AS (chain: PgChain, ...args: any[]): PgChain
